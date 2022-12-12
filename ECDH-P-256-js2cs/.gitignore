@@ -230,4 +230,6 @@ _Pvt_Extensions
 # FAKE - F# Make
 .fake/
 # Miscellaneous
+
 /ClientApp/.angular/cache
+/ECDH-P-256-js2cs/ClientApp/.angular/cache

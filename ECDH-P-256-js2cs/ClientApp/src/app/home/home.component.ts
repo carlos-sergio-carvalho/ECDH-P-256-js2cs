@@ -1,6 +1,7 @@
 import { Component, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
+
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
@@ -12,19 +13,56 @@ export class HomeComponent {
     this.setUpDFHKeys().then(() => {
       http.post(baseUrl + 'api/keyexange', { pkey: this.publicKeyB64 }).subscribe(result => {
       //this.forecasts = result;
-        this.getSharedSecret((result as any).pkey).then(() => { console.log(this.sharedSecretHashB64.replace(/(.{64})/g, '$1\n'))});
+        this.getSharedSecret((result as any).pkey).then(async () => {
+          /* @ts-ignore */
+          let key = await crypto.subtle.importKey(
+            "raw",
+            this.sharedSecretHash,
+            "AES-GCM",
+            true,
+            ["encrypt", "decrypt"]
+          );
+
+          const { cipher, iv } = await this.encrypt(first, key);
+          /* @ts-ignore */
+          console.log(btoa(String.fromCharCode.apply(null, iv)));
+          /* @ts-ignore */
+          console.log(btoa(String.fromCharCode.apply(null, new Uint8Array(this.sharedSecretHash))));
+          /* @ts-ignore */
+          console.log(btoa(String.fromCharCode.apply(null, new Uint8Array(cipher))));
+
+          
+          http.post(baseUrl + 'api/keyexange/AesPackage', {
+            /* @ts-ignore */
+            iv: btoa(String.fromCharCode.apply(null, iv)),
+            /* @ts-ignore */
+            cipher: btoa(String.fromCharCode.apply(null, new Uint8Array(cipher)))
+/*            ,
+            key: btoa(String.fromCharCode.apply(null, new Uint8Array(this.sharedSecretHash)))*/
+          }).subscribe(result => {
+            
+          });
+          
+          let t = 0;
+
+        });
     }, error => console.error(error));
 
 
     });
-    
+    const first = 'Hello, World!'
   }
 
+  
+
+
+  /*parte para ECDH mover para modulo  */
 
   //private async setUpDFHKeys().then(() => { });
   private publicKeyB64:string='';
   private privateKeyB64: string = '';
   public sharedSecretHashB64: string = '';
+  private sharedSecretHash: ArrayBuffer | undefined ;
 private async setUpDFHKeys() {
   var bobKey = await window.crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
@@ -70,9 +108,9 @@ private async setUpDFHKeys() {
     privateKey,
     256
   );
-    var sharedSecretHash = await crypto.subtle.digest('SHA-256', sharedSecret);
+    this.sharedSecretHash = await crypto.subtle.digest('SHA-256', sharedSecret);
     /* @ts-ignore */
-  this.sharedSecretHashB64 = btoa(String.fromCharCode.apply(null, new Uint8Array(sharedSecretHash)));
+    this.sharedSecretHashB64 = btoa(String.fromCharCode.apply(null, new Uint8Array(this.sharedSecretHash)));
   //console.log("Bob's shared secret: " + sharedSecretHashB64.replace(/(.{64})/g, '$1\n'));
 };
 
@@ -85,5 +123,39 @@ private async setUpDFHKeys() {
     bytes[i] = binary_string.charCodeAt(i);
   }
   return bytes.buffer;
-}
+  }
+
+
+  /*parte para AES+GSM mover para modulo  */
+  //https://voracious.dev/blog/a-practical-guide-to-the-web-cryptography-api
+  // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey
+  private generateKey = async () => { return window.crypto.subtle.generateKey({ name: 'AES-GCM', length: 256, }, true, ['encrypt', 'decrypt']) }
+
+  private encode = (data: any) => { const encoder = new TextEncoder(); return encoder.encode(data) }
+
+  private generateIv = () => { return window.crypto.getRandomValues(new Uint8Array(12)) }
+  private encrypt = async (data: any, key: any) =>
+  {
+    const encoded = this.encode(data);
+    const iv = this.generateIv();
+    const cipher = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv, }, key, encoded);
+    return { cipher, iv, }
+  }
+  private pack = (buffer: any) => {
+    /* @ts-ignore */
+    return window.btoa(String.fromCharCode.apply(null, new Uint8Array(buffer))
+    )
+  }
+  private unpack = (packed: any) => {
+    const string = window.atob(packed);
+    const buffer = new ArrayBuffer(string.length);
+    const bufferView = new Uint8Array(buffer);
+    for (let i = 0; i < string.length; i++) { bufferView[i] = string.charCodeAt(i) };
+    return buffer;
+  }
+  private decode = (bytestream: any) => { const decoder = new TextDecoder(); return decoder.decode(bytestream); }
+
+  private decrypt = async (cipher: any, key: any, iv: any) => { const encoded = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv, }, key, cipher); return this.decode(encoded) }
+
+
 }
