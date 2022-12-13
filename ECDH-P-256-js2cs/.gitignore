@@ -231,5 +231,5 @@ _Pvt_Extensions
 .fake/
 # Miscellaneous
 
-/ClientApp/.angular/cache
+.angular/cache
 /ECDH-P-256-js2cs/ClientApp/.angular/cache

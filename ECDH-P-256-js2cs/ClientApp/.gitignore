@@ -34,9 +34,9 @@ npm-debug.log
 yarn-error.log
 testem.log
 /typings
-
+# Miscellaneous
+/.angular/cache 
 # System Files
 .DS_Store
 Thumbs.db
-# Miscellaneous
-/.angular/cache 
+
