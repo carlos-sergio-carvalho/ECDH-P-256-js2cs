@@ -10,9 +10,9 @@ namespace ECDH_P_256_js2cs.Controllers
     [Route("api/[controller]")]
     public class KeyExangeController : ControllerBase
     {
-        private readonly ILogger<WeatherForecastController> _logger;
+        private readonly ILogger<KeyExangeController> _logger;
         private readonly IMemoryCache _memoryCache;
-        public KeyExangeController(ILogger<WeatherForecastController> logger, IMemoryCache memoryCache)
+        public KeyExangeController(ILogger<KeyExangeController> logger, IMemoryCache memoryCache)
         {
             _logger = logger;
             _memoryCache = memoryCache;
